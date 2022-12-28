@@ -2,6 +2,7 @@ const express = require('express');
 const encryption = require('./utils/crypto');
 const cookieParser = require('cookie-parser');
 const login = require('./handlers/login');
+const vault = require('./handlers/password-manager');
 
 // Load .env variables
 require('dotenv').config();
@@ -23,4 +24,5 @@ app.use(
 const port = process.env.PORT || 3000;
 
 app.use('/login', login);
+app.use('/vault', vault);
 app.listen(port, () => console.log(`This app is running at ${port}`));
