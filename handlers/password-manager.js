@@ -4,6 +4,9 @@ const token = require('../utils/token');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = process.env.MONGODBDEV_URL;
 const passwordUtils = require('../utils/utils');
+const encrypt = require('../utils/crypto').encriptPassword;
+const decrypt = require('../utils/crypto').decryptPassword;
+
 const DB_NAME = 'password-shell';
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -36,9 +39,17 @@ Router.get('/', Authenticate, async (req, res) => {
     await client.connect();
     const collection = client.db(DB_NAME).collection('vault');
     console.log(email);
-    const passwordCollections = await collection.find({ indexField: email });
-    console.log(passwordCollections);
-    res.send(passwordCollections);
+    const passwordCollections = [];
+    await collection.find({ indexField: email }).forEach(function (item) {
+      //here item is record. ie. what you have to do with each record.
+      item.password = decrypt(item.password);
+      passwordCollections.push(item);
+    });
+    if (passwordCollections.length > 0) {
+      res.send(passwordCollections);
+    } else {
+      res.send('No data found');
+    }
   } catch (error) {
     console.error(error);
     res.status(500).send('Something wrong, please try again');
@@ -51,19 +62,28 @@ Router.post('/', async (req, res) => {
   const password = req.body.password;
   const username = req.body.username;
   const notes = req.body.notes;
+  const website = req.body.website;
+  const title = req.body.title;
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection('vault');
-    const hashedPassword = await passwordUtils.hashPassword(password);
+    const hashedPassword = await encrypt(password);
     const newDocument = {
       indexField: indexField,
-      username: username,
-      email: email,
+      username,
+      email,
       password: hashedPassword,
-      notes: notes,
+      notes,
+      title,
+      website,
     };
-    await collection.insertOne(newDocument);
-    res.send('Password saved successfully');
+    const response = await collection.findOne({ title });
+    if (response) {
+      res.send('Same title already exist');
+    } else {
+      await collection.insertOne(newDocument);
+      res.send('Password saved successfully');
+    }
   } catch (error) {
     console.error(error);
     res.status(500).send('Something wrong, please try again');
