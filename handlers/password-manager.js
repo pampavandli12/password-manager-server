@@ -23,7 +23,7 @@ const Authenticate = async (req, res, next) => {
   try {
     const details = await token.verifyToken(reqJwt);
     if (details) {
-      req.body.email = details.email;
+      req.body.useremail = details.email;
       next();
     } else {
       res.status(403).send('FORBIDDEN');
@@ -34,11 +34,10 @@ const Authenticate = async (req, res, next) => {
 };
 
 Router.get('/', Authenticate, async (req, res) => {
-  const email = req.body.email;
+  const email = req.body.useremail;
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection('vault');
-    console.log(email);
     const passwordCollections = [];
     await collection.find({ indexField: email }).forEach(function (item) {
       //here item is record. ie. what you have to do with each record.
@@ -56,7 +55,7 @@ Router.get('/', Authenticate, async (req, res) => {
   }
 });
 
-Router.post('/', async (req, res) => {
+Router.post('/', Authenticate, async (req, res) => {
   const indexField = req.body.useremail;
   const email = req.body.email;
   const password = req.body.password;

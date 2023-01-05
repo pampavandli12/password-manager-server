@@ -25,9 +25,11 @@ Router.post('/', async (req, res) => {
     ) {
       // Generate jwt token
       const jwt = token.generateToken({ email, username: resp.username });
+
       res.cookie('token', jwt, {
         httpOnly: true,
         secure: true,
+        Path: '/',
         sameSite: 'None',
         expires: new Date(Date.now() + 14400000),
       });
