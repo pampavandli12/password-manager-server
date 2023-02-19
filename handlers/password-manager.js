@@ -33,7 +33,7 @@ const Authenticate = async (req, res, next) => {
   }
 };
 
-Router.get('/', async (req, res) => {
+Router.get('/', Authenticate, async (req, res) => {
   const email = req.body.useremail;
   console.log(email);
   try {
@@ -41,8 +41,6 @@ Router.get('/', async (req, res) => {
     const collection = client.db(DB_NAME).collection('vault');
     const passwordCollections = [];
     await collection.find({ indexField: email }).forEach(function (item) {
-      //here item is record. ie. what you have to do with each record.
-      console.log(item);
       item.password = decrypt(item.password);
       passwordCollections.push(item);
     });
@@ -57,7 +55,7 @@ Router.get('/', async (req, res) => {
   }
 });
 
-Router.post('/', async (req, res) => {
+Router.post('/', Authenticate, async (req, res) => {
   const indexField = req.body.useremail;
   const email = req.body.email;
   const password = req.body.password;
@@ -90,7 +88,7 @@ Router.post('/', async (req, res) => {
     res.status(500).send('Something wrong, please try again');
   }
 });
-Router.put('/', async (req, res) => {
+Router.put('/', Authenticate, async (req, res) => {
   const indexField = req.body.useremail;
   const email = req.body.email;
   const password = req.body.password;
@@ -122,13 +120,14 @@ Router.put('/', async (req, res) => {
     console.error(error);
   }
 });
-Router.delete('/', async (req, res) => {
-  //{ "_id" : ObjectId("563237a41a4d68582c2509da") }
-  const id = req.body.id;
+Router.delete('/', Authenticate, async (req, res) => {
+  const title = req.query.title;
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection('vault');
-    await collection.deleteOne({ _id: ObjectId(id) });
+    const response = await collection.findOneAndDelete({
+      title: title,
+    });
     res.status(200).send('deleted successfully');
   } catch (error) {
     res.status(500).send('Something wrong, please try again');
