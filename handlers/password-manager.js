@@ -1,7 +1,7 @@
 const express = require('express');
 const Router = express.Router();
 const token = require('../utils/token');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = process.env.MONGODBDEV_URL;
 const passwordUtils = require('../utils/utils');
 const encrypt = require('../utils/crypto').encriptPassword;
@@ -33,14 +33,16 @@ const Authenticate = async (req, res, next) => {
   }
 };
 
-Router.get('/', Authenticate, async (req, res) => {
+Router.get('/', async (req, res) => {
   const email = req.body.useremail;
+  console.log(email);
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection('vault');
     const passwordCollections = [];
     await collection.find({ indexField: email }).forEach(function (item) {
       //here item is record. ie. what you have to do with each record.
+      console.log(item);
       item.password = decrypt(item.password);
       passwordCollections.push(item);
     });
@@ -55,7 +57,7 @@ Router.get('/', Authenticate, async (req, res) => {
   }
 });
 
-Router.post('/', Authenticate, async (req, res) => {
+Router.post('/', async (req, res) => {
   const indexField = req.body.useremail;
   const email = req.body.email;
   const password = req.body.password;
@@ -89,9 +91,47 @@ Router.post('/', Authenticate, async (req, res) => {
   }
 });
 Router.put('/', async (req, res) => {
-  res.send('This endpoint is to update password');
+  const indexField = req.body.useremail;
+  const email = req.body.email;
+  const password = req.body.password;
+  const username = req.body.username;
+  const notes = req.body.notes;
+  const website = req.body.website;
+  const title = req.body.title;
+  const id = req.body.id;
+  try {
+    await client.connect();
+    const collection = client.db(DB_NAME).collection('vault');
+    const hashedPassword = await encrypt(password);
+    const newDocument = {
+      indexField: indexField,
+      username,
+      email,
+      password: hashedPassword,
+      notes,
+      title,
+      website,
+    };
+    const response = await collection.updateOne(
+      { _id: ObjectId(id) },
+      { $set: { ...newDocument } }
+    );
+    res.send('Document updated successfully');
+  } catch (error) {
+    res.send('Something went wrong, please try again!');
+    console.error(error);
+  }
 });
 Router.delete('/', async (req, res) => {
-  res.send('This endpoint is to delete password');
+  //{ "_id" : ObjectId("563237a41a4d68582c2509da") }
+  const id = req.body.id;
+  try {
+    await client.connect();
+    const collection = client.db(DB_NAME).collection('vault');
+    await collection.deleteOne({ _id: ObjectId(id) });
+    res.status(200).send('deleted successfully');
+  } catch (error) {
+    res.status(500).send('Something wrong, please try again');
+  }
 });
 module.exports = Router;

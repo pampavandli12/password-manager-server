@@ -19,6 +19,7 @@ Router.post('/', async (req, res) => {
     await client.connect();
     const collection = client.db(DB_NAME).collection('users');
     const resp = await collection.findOne({ email: email });
+    console.log(email);
     if (
       resp &&
       (await passwordUtils.comparePassword(password, resp.password))
@@ -80,6 +81,7 @@ Router.post('/signup', async (req, res) => {
 Router.post('/getotp', async (req, res) => {
   //Check if email exist
   const email = req.body.email;
+  console.log(email);
   try {
     await client.connect();
     const collection = client.db(DB_NAME).collection('users');
